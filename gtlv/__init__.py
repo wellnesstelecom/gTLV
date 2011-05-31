@@ -1,0 +1,72 @@
+"""gTLV
+
+gTLV is a transport protocol that can be used to exchange generic
+information between two peers by means of Type-Length-Value (TLV) data encapsulation.
+
+Applications may take advantage of this protocol by extending this
+specification with their specific requirements (actually, gTLV does not provide any
+functionality by itself). To do this, several requirements must
+be observed:
+
+1) Application-specific attribute definitions must extend Attribute class. E.g.:
+
+class MoteId(Attribute):
+    type = 0x01
+    typedef = 'integer'
+    
+    def __init__(self, value):
+        Attribute.__init__(self)
+        self.value = value
+
+2) Application-specific packet definitions must extend Packet class. E.g.:
+
+class DataRequest(Packet):
+    application = 0x0000
+    code = 0x01
+    mandatory_attributes = {MoteId: 1}
+
+    def __init__(self):
+        Packet.__init__(self)
+
+3) A list of supported packet and attribute classes must be created:
+
+class ListManager():        
+    packet_list = PacketList((DataRequest,))
+    attribute_list = AttributeList((MoteId,))
+
+4) Extend GtlvServer class to write the callback function that will be called
+after a packet is received:
+
+class Server(GtlvServer):
+    def callback(self, raw_packet):
+        packet = decode(raw_packet, self.list_manager)
+        return packet.get_values(MoteId)
+
+5) Start the server in the server application:
+
+server = Server("localhost", 50000, ListManager)
+server.start()
+
+6) In the client application, a Target instance must be created, pointing to the server.
+
+target = Target("localhost", 50000, ListManager)
+
+7) Now, packets can be created and sent to the server:
+
+new_packet = DataRequest()
+new_packet.add_attribute(MoteId(123))
+rsp = target.send(new_packet) # rsp is whatever the callback function returns
+
+
+This package contains two modules:
+
+  - network: client and server code
+  - packet: gTLV packet classes to be extended by specific applications
+"""
+
+__docformat__	= "epytext en"
+
+__author__	= "Daniel Carrion <dcarrion@wtelecom.es>"
+__copyright__	= "Copyright 2009 Wellness Telecom S.L."
+
+__all__ = [ "packet", "network"]
